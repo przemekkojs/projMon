@@ -1,22 +1,40 @@
 from fastapi import FastAPI
 from models import InstallationData, AnalysisResult
 from services import Calculator, Validator, LightingSchedule
-from data import AnalysisHistory
+from db import SessionLocal, AnalysisHistoryDB, init_db
 
 app = FastAPI()
+
+init_db()
 
 calculator = Calculator()
 validator = Validator()
 schedule = LightingSchedule()
-history = AnalysisHistory()
 
+@app.get("/history")
+def get_history():
+    db = SessionLocal()
+    data = db.query(AnalysisHistoryDB).all()
+    db.close()
+
+    return [
+        {
+            "id": x.id,
+            "power_kw": x.power_kw,
+            "yearly_consumption": x.yearly_consumption,
+            "status": x.status,
+            "timestamp": x.timestamp
+        }
+        for x in data
+    ]
 
 @app.post("/analyze", response_model=AnalysisResult)
 def analyze(data: InstallationData):
 
+    db = SessionLocal()
+
     yearly_hours = schedule.yearly_hours()
 
-    # fallback jeśli brak danych
     power = data.power_kw or 0
     consumption = data.yearly_consumption_kwh or 0
 
@@ -34,6 +52,14 @@ def analyze(data: InstallationData):
         status=status
     )
 
-    history.save(data.dict(), result.dict())
+    db_obj = AnalysisHistoryDB(
+        power_kw=power,
+        yearly_consumption=expected_consumption,
+        status=status
+    )
+    db.add(db_obj)
+    db.commit()
+    db.close()
 
     return result
+
