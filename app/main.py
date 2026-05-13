@@ -1,9 +1,18 @@
 from fastapi import FastAPI
-from models import InstallationData, AnalysisResult
-from services import Calculator, Validator, LightingSchedule
-from db import SessionLocal, AnalysisHistoryDB, init_db
+from app.models import InstallationData, AnalysisResult
+from app.services import Calculator, Validator, LightingSchedule
+from app.db import SessionLocal, AnalysisHistoryDB, init_db
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 init_db()
 
@@ -11,22 +20,6 @@ calculator = Calculator()
 validator = Validator()
 schedule = LightingSchedule()
 
-@app.get("/history")
-def get_history():
-    db = SessionLocal()
-    data = db.query(AnalysisHistoryDB).all()
-    db.close()
-
-    return [
-        {
-            "id": x.id,
-            "power_kw": x.power_kw,
-            "yearly_consumption": x.yearly_consumption,
-            "status": x.status,
-            "timestamp": x.timestamp
-        }
-        for x in data
-    ]
 
 @app.post("/analyze", response_model=AnalysisResult)
 def analyze(data: InstallationData):
@@ -52,6 +45,7 @@ def analyze(data: InstallationData):
         status=status
     )
 
+    # 🔥 zapis do bazy
     db_obj = AnalysisHistoryDB(
         power_kw=power,
         yearly_consumption=expected_consumption,
@@ -63,3 +57,19 @@ def analyze(data: InstallationData):
 
     return result
 
+@app.get("/history")
+def get_history():
+    db = SessionLocal()
+    data = db.query(AnalysisHistoryDB).all()
+    db.close()
+
+    return [
+        {
+            "id": x.id,
+            "power_kw": x.power_kw,
+            "yearly_consumption": x.yearly_consumption,
+            "status": x.status,
+            "timestamp": x.timestamp
+        }
+        for x in data
+    ]

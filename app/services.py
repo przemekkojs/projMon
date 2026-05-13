@@ -3,7 +3,7 @@ from typing import Dict
 class LightingSchedule:
     def __init__(self):
         # uproszczone godziny świecenia
-        self.hours_per_month:Dict = {
+        self.hours_per_month = {
             "jan": 400, "feb": 350, "mar": 300,
             "apr": 200, "may": 150, "jun": 100,
             "jul": 120, "aug": 180, "sep": 250,
@@ -13,8 +13,9 @@ class LightingSchedule:
     def yearly_hours(self):
         return sum(self.hours_per_month.values())
 
-# static
+
 class Calculator:
+
     def yearly_consumption(self, power_kw, yearly_hours):
         return power_kw * yearly_hours
 
@@ -26,8 +27,9 @@ class Calculator:
     def estimate_power(self, yearly_consumption, yearly_hours):
         return yearly_consumption / yearly_hours
 
-# static
+
 class Validator:
+
     def validate(self, expected, actual):
         diff = abs(expected - actual) / expected
 
